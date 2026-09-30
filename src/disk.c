@@ -60,3 +60,69 @@ int disk_open(const char *path, Disk *out)
 
     return 0;
 }
+
+/* ── Internal helper ───────────────────────────────────────────────────── */
+
+/*
+ * seek_to_block - seek the file pointer to the start of block_no.
+ * Returns 0 on success, -1 if the block number is out of range or fseek fails.
+ */
+static int seek_to_block(Disk *d, uint32_t block_no)
+{
+    if (block_no >= TOTAL_BLOCKS) {
+        fprintf(stderr, "disk: block %u out of range (max %u)\n",
+                block_no, TOTAL_BLOCKS - 1);
+        return -1;
+    }
+
+    long offset = (long)block_no * BLOCK_SIZE;
+    if (fseek(d->fp, offset, SEEK_SET) != 0) {
+        fprintf(stderr, "disk: fseek to block %u failed: %s\n",
+                block_no, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+/* ── disk_close ────────────────────────────────────────────────────────── */
+
+void disk_close(Disk *d)
+{
+    if (d && d->fp) {
+        fflush(d->fp);
+        fclose(d->fp);
+        d->fp = NULL;
+    }
+}
+
+/* ── disk_read_block ───────────────────────────────────────────────────── */
+
+int disk_read_block(Disk *d, uint32_t block_no, void *buf)
+{
+    if (seek_to_block(d, block_no) != 0)
+        return -1;
+
+    if (fread(buf, 1, BLOCK_SIZE, d->fp) != BLOCK_SIZE) {
+        fprintf(stderr, "disk: short read on block %u: %s\n",
+                block_no, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+/* ── disk_write_block ──────────────────────────────────────────────────── */
+
+int disk_write_block(Disk *d, uint32_t block_no, const void *buf)
+{
+    if (seek_to_block(d, block_no) != 0)
+        return -1;
+
+    if (fwrite(buf, 1, BLOCK_SIZE, d->fp) != BLOCK_SIZE) {
+        fprintf(stderr, "disk: short write on block %u: %s\n",
+                block_no, strerror(errno));
+        return -1;
+    }
+
+    fflush(d->fp);
+    return 0;
+}
