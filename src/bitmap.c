@@ -48,3 +48,48 @@ int bitmap_test(Disk *disk, uint32_t block_no)
 
     return (block[byte_idx(block_no)] & bit_mask(block_no)) ? 1 : 0;
 }
+
+/* ── bitmap_alloc ──────────────────────────────────────────────────────── */
+
+int bitmap_alloc(Disk *disk, uint32_t *block_no)
+{
+    uint8_t block[BLOCK_SIZE];
+    if (disk_read_block(disk, BITMAP_BLOCK, block) != 0)
+        return -1;
+
+    /* linear scan: find the first bit that is 0 (free) */
+    for (uint32_t i = 0; i < TOTAL_BLOCKS; i++) {
+        if (!(block[byte_idx(i)] & bit_mask(i))) {
+            /* mark allocated */
+            block[byte_idx(i)] |= bit_mask(i);
+
+            if (disk_write_block(disk, BITMAP_BLOCK, block) != 0)
+                return -1;
+
+            *block_no = i;
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "bitmap: disk is full — no free blocks\n");
+    return -1;
+}
+
+/* ── bitmap_free ───────────────────────────────────────────────────────── */
+
+int bitmap_free(Disk *disk, uint32_t block_no)
+{
+    if (block_no >= TOTAL_BLOCKS) {
+        fprintf(stderr, "bitmap: cannot free block %u — out of range\n", block_no);
+        return -1;
+    }
+
+    uint8_t block[BLOCK_SIZE];
+    if (disk_read_block(disk, BITMAP_BLOCK, block) != 0)
+        return -1;
+
+    /* clear the bit */
+    block[byte_idx(block_no)] &= (uint8_t)~bit_mask(block_no);
+
+    return disk_write_block(disk, BITMAP_BLOCK, block);
+}
