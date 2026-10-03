@@ -70,3 +70,48 @@ int inode_write(Disk *disk, const Inode *in)
     memcpy(block + offset, in, sizeof(Inode));
     return disk_write_block(disk, block_no, block);
 }
+
+/* ── inode_alloc ───────────────────────────────────────────────────────── */
+
+int inode_alloc(Disk *disk, uint32_t type, uint32_t *inode_id)
+{
+    Inode node;
+
+    for (uint32_t id = 0; id < MAX_INODES; id++) {
+        if (inode_read(disk, id, &node) != 0)
+            return -1;
+
+        if (!node.used) {
+            memset(&node, 0, sizeof(Inode));
+            node.id   = id;
+            node.type = type;
+            node.used = 1;
+
+            if (inode_write(disk, &node) != 0)
+                return -1;
+
+            *inode_id = id;
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "inode: table full — no free inode slots\n");
+    return -1;
+}
+
+/* ── inode_free ────────────────────────────────────────────────────────── */
+
+int inode_free(Disk *disk, uint32_t id)
+{
+    if (id >= MAX_INODES) {
+        fprintf(stderr, "inode: cannot free id %u — out of range\n", id);
+        return -1;
+    }
+
+    /* zero the entire slot, which sets used=0 and type=INODE_FREE */
+    Inode blank;
+    memset(&blank, 0, sizeof(Inode));
+    blank.id = id;  /* keep the id consistent for debugging */
+
+    return inode_write(disk, &blank);
+}
