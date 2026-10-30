@@ -1,4 +1,4 @@
-# kiwiFS 🥝
+# kiwiFS 
 
 > A small, educational userspace filesystem simulator written in C11.
 
@@ -62,8 +62,6 @@ Host Linux Filesystem
 Every time we use a computer, we're relying on a filesystem — an invisible layer that organizes our data into files and directories on a physical disk. But how does it actually work? How does the OS know where a file starts, how big it is, or which disk blocks it occupies?
 
 **kiwiFS** was born from the curiosity to answer these questions by building a filesystem from scratch.
-
-The name *kiwi* reflects a simple, honest, self-contained thing: a kiwi fruit is compact, green inside, and holds everything it needs within its own skin. Similarly, kiwiFS holds its entire world inside a single binary file.
 
 This project demonstrates real operating-systems concepts — **block allocation**, **inodes**, **directories**, and **persistence** — through a clean, beginner-readable C implementation. It is designed to be a strong interview artifact: something you can walk through line-by-line and explain every design decision.
 
